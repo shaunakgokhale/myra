@@ -9,6 +9,34 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>myraWidgetsExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>716354BA2FD89A23008621EC</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>716354C92FD89A25008621EC</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>716354D32FD89A25008621EC</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>AA00000000000000000000B1</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 	</dict>
 </dict>
 </plist>

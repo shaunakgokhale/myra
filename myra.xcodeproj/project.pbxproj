@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AA00000000000000000000B3 /* myraWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000A1 /* myraWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		716354CB2FD89A25008621EC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +25,59 @@
 			remoteGlobalIDString = 716354BA2FD89A23008621EC;
 			remoteInfo = myra;
 		};
+		AA00000000000000000000B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 716354B32FD89A23008621EC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA00000000000000000000B1;
+			remoteInfo = myraWidgetsExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AA00000000000000000000B4 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AA00000000000000000000B3 /* myraWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		716354BB2FD89A23008621EC /* myra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		716354CA2FD89A25008621EC /* myraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		716354D42FD89A25008621EC /* myraUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myraUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA00000000000000000000A1 /* myraWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = myraWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		716354F02FD89A26008621EC /* Exceptions for "myra" folder in "myra" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 716354BA2FD89A23008621EC /* myra */;
+		};
+		AA00000000000000000000A2 /* Exceptions for "myraWidgets" folder in "myraWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AA00000000000000000000B1 /* myraWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		716354BD2FD89A23008621EC /* myra */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				716354F02FD89A26008621EC /* Exceptions for "myra" folder in "myra" target */,
+			);
 			path = myra;
 			sourceTree = "<group>";
 		};
@@ -43,6 +89,14 @@
 		716354D72FD89A25008621EC /* myraUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = myraUITests;
+			sourceTree = "<group>";
+		};
+		AA00000000000000000000A3 /* myraWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA00000000000000000000A2 /* Exceptions for "myraWidgets" folder in "myraWidgetsExtension" target */,
+			);
+			path = myraWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +123,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA00000000000000000000C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -76,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				716354BD2FD89A23008621EC /* myra */,
+				AA00000000000000000000A3 /* myraWidgets */,
 				716354CD2FD89A25008621EC /* myraTests */,
 				716354D72FD89A25008621EC /* myraUITests */,
 				716354BC2FD89A23008621EC /* Products */,
@@ -88,6 +150,7 @@
 				716354BB2FD89A23008621EC /* myra.app */,
 				716354CA2FD89A25008621EC /* myraTests.xctest */,
 				716354D42FD89A25008621EC /* myraUITests.xctest */,
+				AA00000000000000000000A1 /* myraWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,10 +165,12 @@
 				716354B72FD89A23008621EC /* Sources */,
 				716354B82FD89A23008621EC /* Frameworks */,
 				716354B92FD89A23008621EC /* Resources */,
+				AA00000000000000000000B4 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AA00000000000000000000B5 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				716354BD2FD89A23008621EC /* myra */,
@@ -163,6 +228,28 @@
 			productReference = 716354D42FD89A25008621EC /* myraUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		AA00000000000000000000B1 /* myraWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA00000000000000000000C1 /* Build configuration list for PBXNativeTarget "myraWidgetsExtension" */;
+			buildPhases = (
+				AA00000000000000000000C2 /* Sources */,
+				AA00000000000000000000C3 /* Frameworks */,
+				AA00000000000000000000C4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA00000000000000000000A3 /* myraWidgets */,
+			);
+			name = myraWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = myraWidgetsExtension;
+			productReference = AA00000000000000000000A1 /* myraWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -201,6 +288,7 @@
 			projectRoot = "";
 			targets = (
 				716354BA2FD89A23008621EC /* myra */,
+				AA00000000000000000000B1 /* myraWidgetsExtension */,
 				716354C92FD89A25008621EC /* myraTests */,
 				716354D32FD89A25008621EC /* myraUITests */,
 			);
@@ -223,6 +311,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		716354D22FD89A25008621EC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA00000000000000000000C4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +348,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA00000000000000000000C2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +367,11 @@
 			isa = PBXTargetDependency;
 			target = 716354BA2FD89A23008621EC /* myra */;
 			targetProxy = 716354D52FD89A25008621EC /* PBXContainerItemProxy */;
+		};
+		AA00000000000000000000B5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA00000000000000000000B1 /* myraWidgetsExtension */;
+			targetProxy = AA00000000000000000000B2 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -322,7 +429,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -380,7 +487,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -395,11 +502,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = myra/myra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2AGVSDRXQ6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = myra/Info.plist;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Myra reads your calendar to understand meeting load and time recovery suggestions, and can add wind-down blocks.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Myra reads steps, workouts, heart rate, caffeine, alcohol and mindfulness to correlate them with your sleep and recovery.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Myra saves completed breathing sessions as mindfulness minutes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -427,11 +539,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = myra/myra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2AGVSDRXQ6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = myra/Info.plist;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Myra reads your calendar to understand meeting load and time recovery suggestions, and can add wind-down blocks.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Myra reads steps, workouts, heart rate, caffeine, alcohol and mindfulness to correlate them with your sleep and recovery.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Myra saves completed breathing sessions as mindfulness minutes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -462,7 +579,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2AGVSDRXQ6;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.shaunak.myraTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -484,7 +601,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2AGVSDRXQ6;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.shaunak.myraTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -538,6 +655,62 @@
 			};
 			name = Release;
 		};
+		AA00000000000000000000C5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = myraWidgets/myraWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2AGVSDRXQ6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = myraWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Myra;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaunak.myra.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA00000000000000000000C6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = myraWidgets/myraWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2AGVSDRXQ6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = myraWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Myra;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaunak.myra.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -573,6 +746,15 @@
 			buildConfigurations = (
 				716354E52FD89A25008621EC /* Debug */,
 				716354E62FD89A25008621EC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA00000000000000000000C1 /* Build configuration list for PBXNativeTarget "myraWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA00000000000000000000C5 /* Debug */,
+				AA00000000000000000000C6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

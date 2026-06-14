@@ -1,0 +1,44 @@
+{
+  "fill" : "automatic",
+  "groups" : [
+    {
+      "blur-material" : null,
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : {
+            "solid" : "display-p3:0.96783,0.00000,0.59294,1.00000"
+          },
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "Union.svg",
+          "name" : "Union",
+          "opacity" : 0.4,
+          "position" : {
+            "scale" : 4,
+            "translation-in-points" : [
+              431.39884288481596,
+              -2.4766186540822517
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "layer-color",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

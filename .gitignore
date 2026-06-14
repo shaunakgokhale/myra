@@ -1,0 +1,11 @@
+# Xcode user-specific
+xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# Backend (see backend/.gitignore)
+backend/node_modules/
+backend/dist/
+backend/.env
