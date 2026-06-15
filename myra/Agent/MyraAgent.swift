@@ -205,14 +205,13 @@ final class MyraAgent {
 /// matches the Claude pipeline.
 private enum Prompts {
     static let morningBriefing = """
-    Generate my morning briefing. Steps:
-    1. Pull last night's sleep + today's readiness (query_metrics over ~14 days for context).
-    2. Get sleep analysis (debt + optimal bedtime).
-    3. Get today's calendar and assess the day's load.
-    4. Synthesize: how I slept vs my norms, what today demands, ONE concrete recommendation for today (training intensity, deep-work timing, or recovery), and when I should be in bed tonight given tomorrow's first event.
-    5. If there's an active experiment, remind me of today's task in one line.
-    6. schedule_push a bedtime nudge for tonight at (optimal bedtime - 45 min), and set_shield_policy scaled to my sleep debt.
-    Keep the briefing under 120 words. Plain text, no markdown headers.
+    Generate my morning briefing, led by my active quest. Steps:
+    1. If I have an active quest, OPEN with it: today's task in one imperative line, plus where I am (e.g. "day 4 of 14"). If I have no active quest, open with one line nudging me to pick a recommended quest.
+    2. Pull recent sleep + readiness (query_metrics over ~14 days) and get_sleep_analysis for a single grounding data point relevant to the quest. The latest Oura row is from this morning's publish (covering last night / "today's" readiness) — use it as current; do not say today's data is missing.
+    3. Get today's calendar and note anything that threatens today's quest task.
+    4. ONE concrete tip to succeed at the quest today.
+    5. Honor the quest's assist: if assist is 'bedtime', schedule_push a bedtime nudge for tonight at (optimal bedtime - 45 min); if assist is 'shield', set_shield_policy for tonight (scale strictness to sleep debt). Otherwise only act if clearly warranted.
+    Keep it under 110 words, quest-first. Plain text, no markdown headers.
     """
 
     static let eveningWinddown = """

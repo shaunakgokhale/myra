@@ -105,16 +105,21 @@ const TOOLS: Anthropic.Tool[] = [
   {
     name: "propose_experiment",
     description:
-      "Propose an n=1 experiment. Choose a clear intervention the user can comply with, a single target metric from the timeline, and a duration of 10-21 days. The baseline is the preceding period of equal length.",
+      "Propose an n=1 experiment (a 'quest') the user can choose to start. Create a short title, a clear intervention the user can comply with, a single target metric from the timeline, and a duration of 7-30 days (longer when the supporting research is strong). Ground it in BOTH the user's own data (why_personal, citing a discovered correlation when one exists) AND general science (why_science). Pick an assist mechanism that helps the user comply: 'shield' (Screen Time block) and 'bedtime' (nightly bedtime nudge) for sleep/screen quests, 'breathe' for stress/recovery quests, or 'none'. The quest is created as a proposal — the baseline and window are computed only when the user starts it.",
     input_schema: {
       type: "object" as const,
       properties: {
+        title: { type: "string", description: "Short quest name, e.g. 'No caffeine after 2pm'" },
         hypothesis: { type: "string" },
         intervention: { type: "string" },
         target_metric: { type: "string" },
-        duration_days: { type: "number" },
+        duration_days: { type: "number", description: "7-30 days" },
+        why_personal: { type: "string", description: "Why this should help THIS user, citing their own data/correlation when available." },
+        why_science: { type: "string", description: "The general scientific rationale, one or two sentences." },
+        assist: { type: "string", enum: ["none", "shield", "bedtime", "breathe"], description: "In-app mechanism to help compliance." },
+        evidence: { type: "object", description: "Optional correlation snapshot {x,y,r,p,n} used to justify it." },
       },
-      required: ["hypothesis", "intervention", "target_metric", "duration_days"],
+      required: ["title", "hypothesis", "intervention", "target_metric", "duration_days", "why_science"],
     },
   },
   {
@@ -183,17 +188,27 @@ export async function runTool(name: string, input: any): Promise<unknown> {
       });
       return { ok: true };
     case "propose_experiment": {
-      const dur = Math.min(28, Math.max(7, input.duration_days ?? 14));
-      const startDay = daysAgoStr(-1); // tomorrow
-      const endDay = daysAgoStr(-dur);
-      const baselineEnd = daysAgoStr(0);
-      const baselineStart = daysAgoStr(dur - 1);
+      const dur = Math.min(30, Math.max(7, input.duration_days ?? 14));
+      const assist = ["none", "shield", "bedtime", "breathe"].includes(input.assist)
+        ? input.assist
+        : "none";
       const r = await query<{ id: number }>(
-        `INSERT INTO experiments (hypothesis, intervention, target_metric, baseline_start, baseline_end, start_day, end_day, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'active') RETURNING id`,
-        [input.hypothesis, input.intervention, input.target_metric, baselineStart, baselineEnd, startDay, endDay],
+        `INSERT INTO experiments
+           (title, hypothesis, intervention, target_metric, duration_days, why_personal, why_science, assist, evidence, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'proposed') RETURNING id`,
+        [
+          input.title ?? input.hypothesis,
+          input.hypothesis,
+          input.intervention,
+          input.target_metric,
+          dur,
+          input.why_personal ?? null,
+          input.why_science ?? null,
+          assist,
+          input.evidence === undefined ? null : JSON.stringify(input.evidence),
+        ],
       );
-      return { ok: true, experiment_id: r.rows[0].id, start_day: startDay, end_day: endDay };
+      return { ok: true, experiment_id: r.rows[0].id, duration_days: dur, status: "proposed" };
     }
     case "evaluate_experiment": {
       const r = await query<any>(`SELECT * FROM experiments WHERE id = $1`, [input.experiment_id]);
@@ -212,13 +227,28 @@ export async function runTool(name: string, input: any): Promise<unknown> {
       );
       const total = compliance.rowCount ?? 0;
       const yes = compliance.rows.filter((c) => c.complied).length;
-      if (effect) {
+      const complianceRate = total ? yes / total : null;
+      // Compliance gate: if the user barely followed the protocol, the effect is
+      // not trustworthy — mark it inconclusive and suppress the numbers.
+      const MIN_COMPLIANCE = 0.6;
+      let stored = effect ? { ...effect, complianceRate } : null;
+      if (stored && complianceRate !== null && complianceRate < MIN_COMPLIANCE) {
+        stored = {
+          ...stored,
+          verdict: "inconclusive",
+          deltaPct: null,
+          cohensD: null,
+          baselineMean: null,
+          experimentMean: null,
+        };
+      }
+      if (stored) {
         await query(`UPDATE experiments SET result = $2 WHERE id = $1`, [
           input.experiment_id,
-          JSON.stringify({ ...effect, complianceRate: total ? yes / total : null }),
+          JSON.stringify(stored),
         ]);
       }
-      return { effect, compliance: { logged: total, complied: yes } };
+      return { effect: stored, compliance: { logged: total, complied: yes, rate: complianceRate } };
     }
     default:
       return { error: `unknown tool ${name}` };
@@ -237,11 +267,13 @@ export async function memoryBlock(): Promise<string> {
 
 export async function activeExperimentsBlock(): Promise<string> {
   const r = await query<any>(
-    `SELECT id, hypothesis, intervention, target_metric, start_day, end_day FROM experiments WHERE status = 'active'`,
+    `SELECT id, title, hypothesis, intervention, target_metric, start_day, end_day, assist FROM experiments WHERE status = 'active'`,
   );
   if (!r.rowCount) return "(none)";
   return r.rows
-    .map((e) => `- #${e.id}: ${e.hypothesis} | do: ${e.intervention} | metric: ${e.target_metric} | until ${String(e.end_day).slice(0, 10)}`)
+    .map((e) =>
+      `- #${e.id} "${e.title ?? e.hypothesis}" | do: ${e.intervention} | metric: ${e.target_metric} | assist: ${e.assist ?? "none"} | until ${String(e.end_day).slice(0, 10)}`,
+    )
     .join("\n");
 }
 
@@ -252,7 +284,8 @@ export async function systemPrompt(): Promise<string> {
 Your loop: Observe -> Discover -> Intervene -> Verify -> Remember.
 
 Principles:
-- Ground every claim in data from your tools. Never invent numbers. If data is missing, say so.
+- Ground every claim in data from your tools. Never invent numbers.
+- Data latency is normal, not an error. Oura readiness, sleep, and activity for a given day publish the NEXT morning, so there is by design no Oura row dated "today" until tomorrow. Treat the most recent available day as current. When the user asks about "today's readiness" or "last night's sleep", use the latest available reading (published this morning) and refer to it naturally — never open with or dwell on "I don't have today's data". Only flag missing data if a metric is genuinely absent for many recent days (a real sync gap), and even then state it briefly and move on.
 - Statistics come from run_correlations and get_sleep_analysis; you translate them into plain language. Correlation is not causation — propose experiments to verify.
 - Be specific and brief. "HRV 42 vs your 30-day median 51" beats "your HRV is a bit low".
 - Intervene at the right moment: schedule_push for timed nudges, set_shield_policy nightly for screen control scaled to sleep debt.
@@ -358,14 +391,13 @@ export async function agentContext(): Promise<{
 
 export async function morningBriefing(): Promise<string> {
   const text = await runAgent(
-    `Generate my morning briefing. Steps:
-1. Pull last night's sleep + today's readiness (query_metrics over ~14 days for context).
-2. Get sleep analysis (debt + optimal bedtime).
-3. Get today's calendar and assess the day's load.
-4. Synthesize: how I slept vs my norms, what today demands, ONE concrete recommendation for today (training intensity, deep-work timing, or recovery), and when I should be in bed tonight given tomorrow's first event.
-5. If there's an active experiment, remind me of today's task in one line.
-6. schedule_push a bedtime nudge for tonight at (optimal bedtime - 45 min), and set_shield_policy scaled to my sleep debt.
-Keep the briefing under 120 words. Plain text, no markdown headers.`,
+    `Generate my morning briefing, led by my active quest. Steps:
+1. If I have an active quest, OPEN with it: today's task in one imperative line, plus where I am (e.g. "day 4 of 14"). If I have no active quest, open with one line nudging me to pick a recommended quest.
+2. Pull recent sleep + readiness (query_metrics over ~14 days) and get_sleep_analysis for a single grounding data point relevant to the quest. The latest Oura row is from this morning's publish (covering last night / "today's" readiness) — use it as current; do not say today's data is missing.
+3. Get today's calendar and note anything that threatens today's quest task.
+4. ONE concrete tip to succeed at the quest today.
+5. Honor the quest's assist: if assist is 'bedtime', schedule_push a bedtime nudge for tonight at (optimal bedtime - 45 min); if assist is 'shield', set_shield_policy for tonight (scale strictness to sleep debt). Otherwise only act if clearly warranted.
+Keep it under 110 words, quest-first. Plain text, no markdown headers.`,
   );
   await saveAgentMessage("briefing", text);
   return text;
@@ -380,17 +412,73 @@ export async function eveningWinddown(): Promise<string> {
 }
 
 export async function weeklyReport(): Promise<string> {
+  // Clear last week's untouched proposals so "Recommended" reflects fresh data.
+  await query(`DELETE FROM experiments WHERE status = 'proposed'`);
   const text = await runAgent(
     `Generate my weekly life report (Sunday evening). Steps:
 1. query_metrics for the key outcomes over 28 days; compare this week vs the previous three.
 2. run_correlations and surface the 2-3 strongest patterns in plain language.
-3. Review active experiments (evaluate_experiment if past end date) and report results honestly, including no-effects.
+3. Review the active quest (evaluate_experiment if past end date) and report results honestly, including no-effects.
 4. remember anything newly learned.
-5. If there is no active experiment, propose_experiment for the most promising lever found.
-Structure: "This week", "Patterns", "Experiment", "Next week". Under 250 words.`,
+5. Refresh my recommended quests: pick the 3-5 most promising levers and propose_experiment for each (these become start-able recommendations). Each MUST have a short title, a personal rationale grounded in my data when possible, a science rationale, and a sensible assist mechanism. Prefer levers backed by strong research with a clear, compliable intervention.
+Structure: "This week", "Patterns", "Quest", "Recommended next". Under 250 words.`,
   );
   await saveAgentMessage("weekly", text);
   return text;
+}
+
+/**
+ * Replaces stale recommendations with a fresh set of proposals derived from the
+ * user's strongest correlations. Existing proposals are cleared first so the
+ * "Recommended" list always reflects the latest data.
+ */
+export async function recommendationsRefresh(): Promise<string> {
+  await query(`DELETE FROM experiments WHERE status = 'proposed'`);
+  const text = await runAgent(
+    `Refresh my recommended quests using whatever data is available right now — do NOT wait for more history. Steps:
+1. run_correlations and get_sleep_analysis, and query_metrics for my recent outcomes, to find the strongest levers on my body.
+2. propose_experiment for the 3-5 most promising, research-backed levers. Each MUST include: a short title, a clear compliable intervention, a single target_metric, a duration (7-30 days, longer when the research is strong), why_personal (cite my own data/correlation when one exists), why_science, and an assist ('shield'/'bedtime' for sleep & screen quests, 'breathe' for stress/recovery, else 'none').
+3. If I don't yet have enough data for strong correlations, still propose sensible, broadly research-backed starter quests grounded in my available metrics (e.g. consistent earlier bedtime, no caffeine after 2pm, a daily wind-down, more daily steps) — never random or generic filler, always tied to a real target_metric I track.
+Reply with a one-line confirmation of how many quests you proposed.`,
+  );
+  return text;
+}
+
+// ---------- Quest lifecycle ----------
+
+/** Start a proposed quest: compute baseline + window relative to today. */
+export async function startExperiment(id: number): Promise<{ ok: boolean; error?: string }> {
+  const r = await query<any>(`SELECT * FROM experiments WHERE id = $1`, [id]);
+  const e = r.rows[0];
+  if (!e) return { ok: false, error: "not found" };
+  if (e.status === "active") return { ok: true };
+
+  const dur = Math.min(30, Math.max(7, e.duration_days ?? 14));
+  const startDay = daysAgoStr(-1);          // tomorrow
+  const endDay = daysAgoStr(-dur);          // start + (dur-1) days, inclusive
+  const baselineEnd = daysAgoStr(0);        // today
+  const baselineStart = daysAgoStr(dur - 1);
+
+  await query(
+    `UPDATE experiments
+       SET status = 'active', started_at = CURRENT_DATE,
+           start_day = $2, end_day = $3, baseline_start = $4, baseline_end = $5
+     WHERE id = $1`,
+    [id, startDay, endDay, baselineStart, baselineEnd],
+  );
+  return { ok: true };
+}
+
+export async function abandonExperiment(id: number): Promise<{ ok: boolean }> {
+  await query(`UPDATE experiments SET status = 'abandoned' WHERE id = $1`, [id]);
+  return { ok: true };
+}
+
+/** Mark a quest completed and evaluate its effect (with a compliance gate). */
+export async function completeExperiment(id: number): Promise<unknown> {
+  const result = await runTool("evaluate_experiment", { experiment_id: id });
+  await query(`UPDATE experiments SET status = 'completed' WHERE id = $1`, [id]);
+  return result;
 }
 
 export async function chat(userText: string): Promise<string> {
