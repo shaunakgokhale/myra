@@ -80,19 +80,13 @@ export async function isConnected(): Promise<boolean> {
 
 let refreshing: Promise<string> | null = null;
 
-export async function accessToken(): Promise<string> {
-  const r = await query<{ access_token: string; refresh_token: string; expires_at: string }>(
-    `SELECT access_token, refresh_token, expires_at FROM oura_tokens WHERE id = 1`,
-  );
-  const row = r.rows[0];
-  if (!row) throw new Error("Oura not connected — open /oauth/start");
-  if (new Date(row.expires_at).getTime() > Date.now()) return row.access_token;
-
-  // Refresh tokens are single-use; serialize refreshes.
+// Refresh tokens are single-use; serialize refreshes so concurrent callers
+// don't each consume (and invalidate) the rotating refresh token.
+function refreshAccessToken(refreshToken: string): Promise<string> {
   if (!refreshing) {
     refreshing = (async () => {
       try {
-        const t = await tokenRequest({ grant_type: "refresh_token", refresh_token: row.refresh_token });
+        const t = await tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
         await saveTokens(t);
         return t.access_token;
       } finally {
@@ -103,13 +97,30 @@ export async function accessToken(): Promise<string> {
   return refreshing;
 }
 
+export async function accessToken(forceRefresh = false): Promise<string> {
+  const r = await query<{ access_token: string; refresh_token: string; expires_at: string }>(
+    `SELECT access_token, refresh_token, expires_at FROM oura_tokens WHERE id = 1`,
+  );
+  const row = r.rows[0];
+  if (!row) throw new Error("Oura not connected — open /oauth/start");
+  if (!forceRefresh && new Date(row.expires_at).getTime() > Date.now()) return row.access_token;
+  return refreshAccessToken(row.refresh_token);
+}
+
 // ---------- API ----------
 
 async function ouraGet<T>(path: string, params?: Record<string, string>): Promise<T> {
-  const token = await accessToken();
   const u = new URL(`${API}${path}`);
   for (const [k, v] of Object.entries(params ?? {})) u.searchParams.set(k, v);
-  const res = await fetch(u, { headers: { Authorization: `Bearer ${token}` } });
+  const send = (token: string) => fetch(u, { headers: { Authorization: `Bearer ${token}` } });
+
+  let res = await send(await accessToken());
+  // A revoked (but not yet clock-expired) token still returns 401. Force a
+  // single refresh + retry so a stale token self-heals instead of silently
+  // failing every sync until someone re-runs OAuth by hand.
+  if (res.status === 401) {
+    res = await send(await accessToken(true));
+  }
   if (!res.ok) throw new Error(`Oura GET ${path} failed: ${res.status} ${await res.text()}`);
   return (await res.json()) as T;
 }
