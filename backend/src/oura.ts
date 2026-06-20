@@ -136,6 +136,32 @@ export async function fetchDocument(dataType: OuraDataType, docId: string): Prom
   return ouraGet(`/usercollection/${dataType}/${docId}`);
 }
 
+export interface HeartrateSample {
+  bpm: number;
+  source: string;
+  timestamp: string;
+}
+
+/**
+ * Intraday heart-rate samples between two ISO-8601 datetimes (offset form, e.g.
+ * `2026-06-19T00:00:00+02:00`). Follows next_token pagination and returns the
+ * full day in one array. Unlike the daily collections this endpoint uses
+ * start_datetime/end_datetime, not start_date/end_date.
+ */
+export async function fetchHeartrate(startDatetime: string, endDatetime: string): Promise<HeartrateSample[]> {
+  const out: HeartrateSample[] = [];
+  let nextToken: string | null = null;
+  do {
+    const params: Record<string, string> = { start_datetime: startDatetime, end_datetime: endDatetime };
+    if (nextToken) params.next_token = nextToken;
+    const page: Paged<HeartrateSample> = await ouraGet(`/usercollection/heartrate`, params);
+    out.push(...page.data);
+    nextToken = page.next_token;
+  } while (nextToken);
+  out.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  return out;
+}
+
 export async function fetchPersonalInfo(): Promise<any> {
   return ouraGet(`/usercollection/personal_info`);
 }

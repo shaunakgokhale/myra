@@ -1,19 +1,22 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import crypto from "node:crypto";
-import { config, daysAgoStr, userClock } from "./config.js";
+import { config, daysAgoStr, userClock, dayBoundsIso } from "./config.js";
 import { migrate, query, upsertMetric, getKV, setKV } from "./db.js";
 import {
   authorizeUrl, exchangeCode, isConnected, backfillHistory, syncRecent,
   ensureSubscriptions, listSubscriptions, fetchDocument, storeDocument,
+  fetchHeartrate,
   type OuraDataType,
 } from "./oura.js";
 import { syncWeather } from "./weather.js";
 import { discoverCorrelations, loadDailyMatrix, optimalBedtimeWindow, sleepDebt } from "./stats.js";
 import {
   agentConfigured, chat, morningBriefing, eveningWinddown, weeklyReport,
-  agentContext, runTool, saveAgentMessage,
+  agentContext, runTool, saveAgentMessage, recommendationsRefresh,
+  startExperiment, abandonExperiment, completeExperiment,
 } from "./agent.js";
+import { evaluateEffect } from "./stats.js";
 import { startScheduler } from "./scheduler.js";
 
 const app = new Hono();
@@ -149,6 +152,38 @@ api.get("/dashboard", async (c) => {
     latestMessage: latestBriefing.rows[0] ?? null,
     directives: Object.fromEntries(directives.rows.map((d) => [d.key, d.value])),
   });
+});
+
+// Intraday heart rate for one day, for external viz (e.g. TouchDesigner Web DAT).
+// Uses the stored, auto-refreshing Oura token so no secret needs to live in the
+// TD project. Query: ?date=YYYY-MM-DD (defaults to yesterday) OR explicit
+// ?start=<iso>&end=<iso>. Add &format=csv for a TD-friendly table.
+api.get("/oura/heartrate", async (c) => {
+  const explicitStart = c.req.query("start");
+  const explicitEnd = c.req.query("end");
+  const date = c.req.query("date") ?? daysAgoStr(1);
+  const { start, end } = explicitStart && explicitEnd
+    ? { start: explicitStart, end: explicitEnd }
+    : dayBoundsIso(date);
+
+  let samples;
+  try {
+    samples = await fetchHeartrate(start, end);
+  } catch (e) {
+    return c.json({ error: String(e) }, 502);
+  }
+
+  if (c.req.query("format") === "csv") {
+    const t0 = samples.length ? Date.parse(samples[0].timestamp) : 0;
+    const rows = samples.map((s) => {
+      const secs = ((Date.parse(s.timestamp) - t0) / 1000).toFixed(1);
+      return `${s.timestamp},${secs},${s.bpm},${s.source}`;
+    });
+    const csv = ["timestamp,seconds_since_start,bpm,source", ...rows].join("\n");
+    return c.text(csv, 200, { "Content-Type": "text/csv" });
+  }
+
+  return c.json({ date, start, end, count: samples.length, data: samples, next_token: null });
 });
 
 api.get("/insights", async (c) => {
@@ -325,8 +360,76 @@ api.get("/directives", async (c) => {
 // ---- Experiments ----
 
 api.get("/experiments", async (c) => {
-  const r = await query(`SELECT * FROM experiments ORDER BY created_at DESC LIMIT 20`);
+  const r = await query(`SELECT * FROM experiments ORDER BY created_at DESC LIMIT 40`);
   return c.json(r.rows);
+});
+
+// Per-quest detail: the row + a live effect evaluation + compliance logs + the
+// target-metric series for the dashboard chart.
+api.get("/experiments/:id", async (c) => {
+  const id = Number(c.req.param("id"));
+  const r = await query<any>(`SELECT * FROM experiments WHERE id = $1`, [id]);
+  const e = r.rows[0];
+  if (!e) return c.text("not found", 404);
+
+  const day = (v: unknown) =>
+    v == null ? null : (v as any).toISOString?.()?.slice(0, 10) ?? String(v).slice(0, 10);
+
+  let liveEffect: unknown = null;
+  if (e.start_day && e.end_day && e.baseline_start && e.baseline_end) {
+    liveEffect = await evaluateEffect(
+      e.target_metric,
+      day(e.baseline_start)!,
+      day(e.baseline_end)!,
+      day(e.start_day)!,
+      day(e.end_day)!,
+    ).catch(() => null);
+  }
+
+  const logs = await query(
+    `SELECT to_char(day,'YYYY-MM-DD') AS day, complied, note FROM experiment_logs
+     WHERE experiment_id = $1 ORDER BY day`,
+    [id],
+  );
+
+  // Series window: the baseline start through the quest end (fallback: last 45 days).
+  const seriesStart = day(e.baseline_start) ?? daysAgoStr(45);
+  const series = await query(
+    `SELECT to_char(day,'YYYY-MM-DD') AS day, value FROM metrics
+     WHERE metric = $1 AND day >= $2 AND value IS NOT NULL ORDER BY day`,
+    [e.target_metric, seriesStart],
+  );
+
+  return c.json({
+    experiment: e,
+    liveEffect,
+    logs: logs.rows,
+    series: series.rows,
+  });
+});
+
+api.post("/experiments/:id/start", async (c) => {
+  const id = Number(c.req.param("id"));
+  // One active quest at a time: any other active quest is abandoned on start.
+  await query(`UPDATE experiments SET status = 'abandoned' WHERE status = 'active' AND id <> $1`, [id]);
+  const r = await startExperiment(id);
+  return c.json(r, r.ok ? 200 : 404);
+});
+
+api.post("/experiments/:id/abandon", async (c) => {
+  const id = Number(c.req.param("id"));
+  return c.json(await abandonExperiment(id));
+});
+
+api.post("/experiments/:id/complete", async (c) => {
+  const id = Number(c.req.param("id"));
+  return c.json(await completeExperiment(id));
+});
+
+api.post("/experiments/refresh", async (c) => {
+  if (!agentConfigured()) return c.json({ error: "agent not configured" }, 400);
+  const text = await recommendationsRefresh();
+  return c.json({ ok: true, text });
 });
 
 api.post("/experiments/:id/log", async (c) => {

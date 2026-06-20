@@ -70,3 +70,25 @@ export function daysAgoStr(n: number): string {
   const d = new Date(Date.now() - n * 86400_000);
   return new Intl.DateTimeFormat("en-CA", { timeZone: config.userTimezone }).format(d);
 }
+
+/** UTC offset (e.g. "+02:00") that `tz` was at on the given YYYY-MM-DD, midday to dodge DST edges. */
+export function tzOffset(dateStr: string, tz = config.userTimezone): string {
+  const probe = new Date(`${dateStr}T12:00:00Z`);
+  const name = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longOffset" })
+    .formatToParts(probe)
+    .find((p) => p.type === "timeZoneName")?.value ?? "GMT+00:00";
+  const m = name.match(/GMT([+-]\d{2}:?\d{2})?/);
+  if (!m || !m[1]) return "+00:00";
+  return m[1].includes(":") ? m[1] : `${m[1].slice(0, 3)}:${m[1].slice(3)}`;
+}
+
+/** ISO-8601 start/end datetimes spanning one local calendar day, incl. UTC offset. */
+export function dayBoundsIso(dateStr: string, tz = config.userTimezone): { start: string; end: string } {
+  const next = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(
+    new Date(new Date(`${dateStr}T12:00:00Z`).getTime() + 86400_000),
+  );
+  return {
+    start: `${dateStr}T00:00:00${tzOffset(dateStr, tz)}`,
+    end: `${next}T00:00:00${tzOffset(next, tz)}`,
+  };
+}
